@@ -5,6 +5,7 @@ from . augmentations.main import apply_augmentations
 
 def register(linter):
     """Required method to auto register this checker"""
+    linter.register_checker(checkers.itp_checks.ITPModuleChecker(linter))
     linter.register_checker(checkers.modules_odoo.ModuleChecker(linter))
     linter.register_checker(checkers.no_modules.NoModuleChecker(linter))
     linter.register_checker(checkers.format.FormatChecker(linter))
@@ -18,6 +19,7 @@ def get_all_messages():
     all_msgs = {}
     all_msgs.update(checkers.modules_odoo.ODOO_MSGS)
     all_msgs.update(checkers.no_modules.ODOO_MSGS)
+    all_msgs.update(checkers.itp_checks.ITP_ODOO_MSGS)
     all_msgs.update(checkers.format.ODOO_MSGS)
     return all_msgs
 
