@@ -16,12 +16,12 @@ ITP_ODOO_MSGS = {
         settings.DESC_DFLT
     ),
     'E%d98' % settings.BASE_OMODULE_ID: (
-        'File: doc/index.rst is absent in module',
+        'File: doc/index.rst is absent in module. Get a template here: https://odoo-development.readthedocs.io/en/latest/dev/docs/usage-instructions.html',
         'absent-doc',
         settings.DESC_DFLT
     ),
     'E%d97' % settings.BASE_OMODULE_ID: (
-        'File: doc/changelog.rst is absent in module',
+        'File: doc/changelog.rst is absent in module. Get a template here: https://odoo-development.readthedocs.io/en/latest/dev/docs/changelog.rst.html',
         'absent-changelog',
         settings.DESC_DFLT
     ),
@@ -31,12 +31,12 @@ ITP_ODOO_MSGS = {
         settings.DESC_DFLT
     ),
     'E%d95' % settings.BASE_OMODULE_ID: (
-        'File: static/description/icon.png is absent in module',
+        'File: static/description/icon.png is absent in module. Get possible icons here: https://odoo-development.readthedocs.io/en/latest/dev/docs/icon.png.html',
         'absent-icon',
         settings.DESC_DFLT
     ),
     'E%d94' % settings.BASE_OMODULE_ID: (
-        'Duplicated xml id: "%s" in file: "%s" and file: "%s"',
+        'Duplicated xml id: "%s" in file: "%s" and file: "%s". Did you forget to update name after copy-paste?',
         'xml-id-duplicated',
         settings.DESC_DFLT
     ),
