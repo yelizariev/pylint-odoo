@@ -16,18 +16,28 @@ ITP_ODOO_MSGS = {
         settings.DESC_DFLT
     ),
     'E%d98' % settings.BASE_OMODULE_ID: (
-        'File doc/index.rst is absent in module',
+        'File: doc/index.rst is absent in module',
         'absent-doc',
         settings.DESC_DFLT
     ),
     'E%d97' % settings.BASE_OMODULE_ID: (
-        'File doc/changelog.rst is absent in module',
+        'File: doc/changelog.rst is absent in module',
         'absent-changelog',
         settings.DESC_DFLT
     ),
     'E%d96' % settings.BASE_OMODULE_ID: (
         'File: %s - Template placeholder "%s" is not updated',
         'rst-template-field',
+        settings.DESC_DFLT
+    ),
+    'E%d95' % settings.BASE_OMODULE_ID: (
+        'File: static/description/icon.png is absent in module',
+        'absent-icon',
+        settings.DESC_DFLT
+    ),
+    'E%d94' % settings.BASE_OMODULE_ID: (
+        'Duplicated xml id: "%s" in file: "%s" and file: "%s"',
+        'xml-id-duplicated',
         settings.DESC_DFLT
     ),
 }
@@ -86,6 +96,10 @@ class ITPModuleChecker(misc.WrapperModuleChecker):
     def _check_absent_changelog(self):
         return os.path.isfile(os.path.join(self.module_path, 'doc/changelog.rst'))
 
+    @utils.check_messages('absent-icon')
+    def _check_absent_icon(self):
+        return os.path.isfile(os.path.join(self.module_path, 'static/description/icon.png'))
+
     @utils.check_messages('rst-template-field')
     def _check_rst_template_field(self):
         rst_files = self.filter_files_ext('rst')
@@ -99,6 +113,26 @@ class ITPModuleChecker(misc.WrapperModuleChecker):
                 if len(match):
                     for rec in match:
                         self.msg_args.append(("%s" % rst_file, rec))
+        if self.msg_args:
+            return False
+        return True
+
+    @utils.check_messages('xml-id-unique')
+    def _check_xml_id_duplicated(self):
+        xml_files = self.filter_files_ext('xml')
+        self.msg_args = []
+        xml_ids = []
+        for xml_file in xml_files:
+            result = self.parse_xml(os.path.join(self.module_path, xml_file))
+            match = result.xpath('data/record')
+            if len(match):
+                for rec in match:
+                    xml_ids.append((xml_file, rec.attrib['id']))
+        ln = len(xml_ids)
+        for i in range(ln):
+            for j in range(i+1, ln):
+                if xml_ids[i][1] == xml_ids[j][1]:
+                    self.msg_args.append((xml_ids[j][1], xml_ids[i][0], xml_ids[j][0]))
         if self.msg_args:
             return False
         return True

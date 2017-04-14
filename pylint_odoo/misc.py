@@ -297,7 +297,7 @@ class WrapperModuleChecker(BaseChecker):
             if there is syntax error return string error message
         """
         try:
-            doc = etree.parse(open(xml_file))
+            doc = etree.parse(open(xml_file, "rb"))
         except etree.XMLSyntaxError as xmlsyntax_error_exception:
             return xmlsyntax_error_exception.message
         return doc
