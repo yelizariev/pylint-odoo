@@ -105,7 +105,7 @@ ODOO_MSGS = {
     ),
     'W%d35' % settings.BASE_OMODULE_ID: (
         'External dependency "%s" without ImportError. More info: '
-        'https://github.com/OCA/maintainer-tools/blob/master/CONTRIBUTING.md'
+        'https://odoo-development.readthedocs.io/en/latest/dev/py/external-imports.html'
         '#external-dependencies',
         'missing-import-error',
         settings.DESC_DFLT
