@@ -94,7 +94,9 @@ ODOO_MSGS = {
     ),
     'W%d40' % settings.BASE_OMODULE_ID: (
         '%s Dangerous use of "replace" from view '
-        'with priority %s < %s',
+        'with priority %s < %s. '
+        'Increase priority or don\'t use "replace". '
+        'For more information see https://odoo-development.readthedocs.io/en/latest/dev/xml/inherit.html#collisions-and-priority ',
         'dangerous-view-replace-wo-priority',
         settings.DESC_DFLT
     ),
