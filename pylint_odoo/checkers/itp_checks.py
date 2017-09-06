@@ -124,7 +124,7 @@ class ITPModuleChecker(misc.WrapperModuleChecker):
         xml_ids = []
         for xml_file in xml_files:
             result = self.parse_xml(os.path.join(self.module_path, xml_file))
-            match = result.xpath('data/record')
+            match = result.xpath('data/record') if not isinstance(result, basestring) else []
             if len(match):
                 for rec in match:
                     xml_ids.append((xml_file, rec.attrib['id']))
