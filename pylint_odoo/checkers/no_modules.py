@@ -56,12 +56,14 @@ import re
 import types
 
 import astroid
+import rfc3986
 from six import string_types
 from pylint.checkers import BaseChecker, utils
 from pylint.interfaces import IAstroidChecker
 
 from .. import settings
 from .. import misc
+from .modules_odoo import DFTL_MANIFEST_DATA_KEYS
 
 ODOO_MSGS = {
     # C->convention R->refactor W->warning E->error F->fatal
@@ -167,17 +169,17 @@ ODOO_MSGS = {
         settings.DESC_DFLT
     ),
     'C%d08' % settings.BASE_NOMODULE_ID: (
-        'Name of compute method should starts with "_compute_"',
+        'Name of compute method should start with "_compute_"',
         'method-compute',
         settings.DESC_DFLT
     ),
     'C%d09' % settings.BASE_NOMODULE_ID: (
-        'Name of search method should starts with "_search_"',
+        'Name of search method should start with "_search_"',
         'method-search',
         settings.DESC_DFLT
     ),
     'C%d10' % settings.BASE_NOMODULE_ID: (
-        'Name of inverse method should starts with "_inverse_"',
+        'Name of inverse method should start with "_inverse_"',
         'method-inverse',
         settings.DESC_DFLT
     ),
@@ -202,6 +204,16 @@ ODOO_MSGS = {
         'attribute-string-redundant',
         settings.DESC_DFLT
     ),
+    'W%d14' % settings.BASE_NOMODULE_ID: (
+        'Website "%s" in manifest key is not a valid URI',
+        'website-manifest-key-not-valid-uri',
+        settings.DESC_DFLT
+    ),
+    'F%d01' % settings.BASE_NOMODULE_ID: (
+        'File "%s": "%s" not found.',
+        'resource-not-exist',
+        settings.DESC_DFLT
+    )
 }
 
 DFTL_MANIFEST_REQUIRED_KEYS = ['license']
@@ -217,12 +229,12 @@ DFTL_ATTRIBUTE_DEPRECATED = [
 ]
 DFTL_METHOD_REQUIRED_SUPER = [
     'create', 'write', 'read', 'unlink', 'copy',
-    'setUp', 'tearDown', 'default_get',
+    'setUp', 'setUpClass', 'tearDown', 'default_get',
 ]
 DFTL_VALID_ODOO_VERSIONS = [
     '4.2', '5.0', '6.0', '6.1', '7.0', '8.0', '9.0', '10.0'
 ]
-DFTL_MANIFEST_VERSION_FORMAT = r"(%(valid_odoo_versions)s)\.\d+\.\d+\.\d+"
+DFTL_MANIFEST_VERSION_FORMAT = r"({valid_odoo_versions})\.\d+\.\d+\.\d+$"
 DFTL_CURSOR_EXPR = [
     'self.env.cr', 'self._cr',  # new api
     'self.cr',  # controllers and test
@@ -235,7 +247,7 @@ DFTL_ODOO_EXCEPTIONS = [
     'ValidationError', 'Warning',
 ]
 DFTL_NO_MISSING_RETURN = [
-    '__init__', 'setUp', 'tearDown',
+    '__init__', 'setUp', 'setUpClass', 'tearDown',
 ]
 FIELDS_METHOD = {
     'Many2many': 4,
@@ -316,7 +328,7 @@ class NoModuleChecker(BaseChecker):
             'metavar': '<string>',
             'default': DFTL_MANIFEST_VERSION_FORMAT,
             'help': 'Regex to check version format in manifest file. '
-            'Use "%(valid_odoo_versions)s" to check the parameter of '
+            'Use "{valid_odoo_versions}" to check the parameter of '
             '"valid_odoo_versions"'
         }),
         ('cursor_expr', {
@@ -387,7 +399,9 @@ class NoModuleChecker(BaseChecker):
                           'renamed-field-parameter'
                           )
     def visit_call(self, node):
-        if node.as_string().lower().startswith('fields.'):
+        if ('fields' == self.get_func_lib(node.func) and
+                isinstance(node.parent, astroid.Assign) and
+                isinstance(node.parent.parent, astroid.ClassDef)):
             args = misc.join_node_args_kwargs(node)
             index = 0
             field_name = ''
@@ -473,7 +487,8 @@ class NoModuleChecker(BaseChecker):
     @utils.check_messages(
         'license-allowed', 'manifest-author-string', 'manifest-deprecated-key',
         'manifest-required-author', 'manifest-required-key',
-        'manifest-version-format')
+        'manifest-version-format', 'resource-not-exist',
+        'website-manifest-key-not-valid-uri')
     def visit_dict(self, node):
         if not os.path.basename(self.linter.current_file) in \
                 settings.MANIFEST_FILES \
@@ -520,6 +535,25 @@ class NoModuleChecker(BaseChecker):
             self.add_message('manifest-version-format', node=node,
                              args=(version_format,
                                    self.config.manifest_version_format_parsed))
+
+        # Check if resource exist
+        dirname = os.path.dirname(self.linter.current_file)
+        for key in DFTL_MANIFEST_DATA_KEYS:
+            for resource in (manifest_dict.get(key) or []):
+                if os.path.isfile(os.path.join(dirname, resource)):
+                    continue
+                self.add_message('resource-not-exist', node=node,
+                                 args=(key, resource))
+
+        # Check if the website is valid URI
+        website = manifest_dict.get('website', '')
+        uri = rfc3986.uri_reference(website)
+        if ((website and ',' not in website) and
+                (not uri.is_valid(require_scheme=True,
+                                  require_authority=True) or
+                 uri.scheme not in {"http", "https"})):
+            self.add_message('website-manifest-key-not-valid-uri',
+                             node=node, args=(website))
 
     @utils.check_messages('api-one-multi-together',
                           'copy-wo-api-one', 'api-one-deprecated',
@@ -581,7 +615,8 @@ class NoModuleChecker(BaseChecker):
             there_is_return = True
             break
         if there_is_super and not there_is_return and \
-           node.name not in self.config.no_missing_return:
+                not node.is_generator() and \
+                node.name not in self.config.no_missing_return:
             self.add_message('missing-return', node=node, args=(node.name))
 
     @utils.check_messages('openerp-exception-warning')
@@ -620,9 +655,11 @@ class NoModuleChecker(BaseChecker):
         return re.sub(r"(?:^|_)(.)", lambda m: m.group(1).upper(), string)
 
     def formatversion(self, string):
-        self.config.manifest_version_format_parsed = \
-            self.config.manifest_version_format % dict(
-                valid_odoo_versions='|'.join(self.config.valid_odoo_versions))
+        valid_odoo_versions = '|'.join(
+            map(re.escape, self.config.valid_odoo_versions))
+        self.config.manifest_version_format_parsed = (
+            self.config.manifest_version_format.format(
+                valid_odoo_versions=valid_odoo_versions))
         return re.match(self.config.manifest_version_format_parsed, string)
 
     def get_decorators_names(self, decorators):
@@ -636,6 +673,12 @@ class NoModuleChecker(BaseChecker):
         func_name = isinstance(node, astroid.Name) and node.name or \
             isinstance(node, astroid.Getattr) and node.attrname or ''
         return func_name
+
+    def get_func_lib(self, node):
+        if isinstance(node, astroid.Getattr) and \
+                isinstance(node.expr, astroid.Name):
+            return node.expr.name
+        return ""
 
     @utils.check_messages('translation-required')
     def visit_raise(self, node):
