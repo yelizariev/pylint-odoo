@@ -147,7 +147,7 @@
     "brace-style": "error",
     "callback-return": "error",
     "camelcase": "off",
-    "comma-dangle": "off",
+    "comma-dangle": "error",
     "comma-spacing": "off",
     "comma-style": "error",
     "complexity": [
@@ -207,9 +207,9 @@
     "padded-blocks": "off",
     "prefer-arrow-callback": "off",
     "prefer-const": "error",
-    "prefer-reflect": "error",
+    "prefer-reflect": "off",
     "prefer-rest-params": "error",
-    "prefer-spread": "error",
+    "prefer-spread": "off",
     "prefer-template": "off",
     "quote-props": "off",
     "quotes": "off",
@@ -242,6 +242,5 @@
     "yield-star-spacing": "off",
     "yoda": "error"
   },
-  "parserOptions": {},
-  "ecmaFeatures": {}
+  "parserOptions": {}
 }

@@ -130,11 +130,23 @@ ODOO_MSGS = {
         'xml-attribute-translatable',
         settings.DESC_DFLT
     ),
+    'W%d42' % settings.BASE_OMODULE_ID: (
+        '%s Deprecated <tree> xml attribute "%s"',
+        'xml-deprecated-tree-attribute',
+        settings.DESC_DFLT
+    ),
+    'W%d39' % settings.BASE_OMODULE_ID: (
+        '%s Use <odoo> instead of <odoo><data> or use <odoo noupdate="1">'
+        'instead of <odoo><data noupdate="1">',
+        'deprecated-data-xml-node',
+        settings.DESC_DFLT
+    )
 }
 
 
 DFTL_README_TMPL_URL = 'https://github.com/OCA/maintainer-tools' + \
     '/blob/master/template/module/README.rst'
+DFTL_README_FILES = ['README.rst', 'README.md', 'README.txt']
 DFTL_MIN_PRIORITY = 99
 # Files supported from manifest to convert
 # Extracted from openerp/tools/convert.py:def convert_file
@@ -160,6 +172,9 @@ DFTL_JSLINTRC = os.path.join(
     os.path.dirname(os.path.dirname(os.path.realpath(__file__))),
     'examples', '.jslintrc'
 )
+DFLT_DEPRECATED_TREE_ATTRS = ['colors', 'fonts', 'string']
+DFTL_MANIFEST_DATA_KEYS = ['data', 'demo', 'demo_xml', 'init_xml', 'test',
+                           'update_xml']
 
 
 class ModuleChecker(misc.WrapperModuleChecker):
@@ -205,6 +220,15 @@ class ModuleChecker(misc.WrapperModuleChecker):
             'help': ('A path to a file that contains a configuration file of '
                      'javascript lint. You can use the environment variable '
                      '"PYLINT_ODOO_JSLINTRC" too. Default: %s' % DFTL_JSLINTRC)
+        }),
+        ('deprecated_tree_attributes', {
+            'type': 'multiple_choice',
+            'metavar': '<attributes>',
+            'default': DFLT_DEPRECATED_TREE_ATTRS,
+            'choices': DFLT_DEPRECATED_TREE_ATTRS,
+            'help': 'List of deprecated list view attributes,'
+            ' separated by a comma. Valid values: %s' % ', '.join(
+                DFLT_DEPRECATED_TREE_ATTRS)
         }),
     )
 
@@ -398,11 +422,14 @@ class ModuleChecker(misc.WrapperModuleChecker):
         return True
 
     def _check_missing_readme(self):
-        """Check if exists ./README.rst file
+        """Check if exists ./README.{rst,md,txt} file
         :return: If exists return True else False
         """
         self.msg_args = (self.config.readme_template_url,)
-        return os.path.isfile(os.path.join(self.module_path, 'README.rst'))
+        for readme in DFTL_README_FILES:
+            if os.path.isfile(os.path.join(self.module_path, readme)):
+                return True
+        return False
 
     def _check_xml_syntax_error(self):
         """Check if xml file there is syntax error
@@ -653,6 +680,22 @@ class ModuleChecker(misc.WrapperModuleChecker):
             return False
         return True
 
+    def _check_deprecated_data_xml_node(self):
+        """Check deprecated <data> xml node inside <odoo> xml node
+        :return: False if found <data> xml node inside <odoo> xml node"""
+        xml_files = self.filter_files_ext('xml')
+        self.msg_args = []
+        for xml_file in xml_files:
+            doc = self.parse_xml(os.path.join(self.module_path, xml_file))
+            odoo_nodes = doc.xpath("/odoo/data") \
+                if not isinstance(doc, basestring) else []
+            if len(odoo_nodes) == 1:
+                lineno = odoo_nodes[0].sourceline
+                self.msg_args.append(("%s:%s" % (xml_file, lineno)))
+        if self.msg_args:
+            return False
+        return True
+
     def _check_deprecated_openerp_xml_node(self):
         """Check deprecated <openerp> xml node
         :return: False if exists <openerp> node and
@@ -715,12 +758,34 @@ class ModuleChecker(misc.WrapperModuleChecker):
 
     def _get_manifest_referenced_files(self):
         referenced_files = {}
-        data_keys = ['data', 'demo', 'demo_xml', 'init_xml', 'test',
-                     'update_xml']
-        for data_type in data_keys:
+        for data_type in DFTL_MANIFEST_DATA_KEYS:
             for fname in self.manifest_dict.get(data_type) or []:
                 referenced_files[fname] = data_type
         return referenced_files
+
+    def _get_xml_referenced_files(self):
+        referenced_files = {}
+        for data_type in DFTL_MANIFEST_DATA_KEYS:
+            for fname in self.manifest_dict.get(data_type) or []:
+                if not fname.endswith('.xml'):
+                    continue
+                referenced_files.update(
+                    self._get_xml_referenced_files_report(fname, data_type)
+                )
+        return referenced_files
+
+    def _get_xml_referenced_files_report(self, fname, data_type):
+        return {
+            # those files are relative to the addon path
+            os.path.join(
+                *record.attrib[attribute].split(os.sep)[1:]
+            ): data_type
+            for attribute in ['xml', 'xsl']
+            for record in self.parse_xml(
+                os.path.join(self.module_path, fname)
+            )
+            .xpath('//report[@%s]' % attribute)
+        }
 
     def _get_module_files(self):
         module_files = []
@@ -733,7 +798,9 @@ class ModuleChecker(misc.WrapperModuleChecker):
         """Check if a file is not used from manifest"""
         self.msg_args = []
         module_files = set(self._get_module_files())
-        referenced_files = set(self._get_manifest_referenced_files())
+        referenced_files = set(self._get_manifest_referenced_files()).union(
+            set(self._get_xml_referenced_files())
+        )
         for no_referenced_file in (module_files - referenced_files):
             if (not no_referenced_file.startswith('static/') and
                 not (no_referenced_file.startswith('test/') or
@@ -757,6 +824,52 @@ class ModuleChecker(misc.WrapperModuleChecker):
                     '//attribute[not(@translation)]'):
                 self.msg_args.append(
                     ("%s:%d" % (xml_file, record.sourceline), 'xml_id'))
+        if self.msg_args:
+            return False
+        return True
+
+    def _check_xml_deprecated_tree_attribute(self):
+        """The tree-view declaration is using a deprecated attribute.
+            Example <tree string="Partners"></tree>
+        """
+        checks = [
+            {
+                'attr': 'colors',
+                'skip_versions': {'4.2', '5.0', '6.0', '6.1', '7.0', '8.0'},
+                'xpath': './/tree[@colors]',
+            },
+            {
+                'attr': 'fonts',
+                'skip_versions': {'4.2', '5.0', '6.0', '6.1', '7.0', '8.0'},
+                'xpath': './/tree[@fonts]',
+            },
+            {
+                'attr': 'string',
+                'skip_versions': {'4.2', '5.0', '6.0', '6.1', '7.0'},
+                'xpath': './/tree[@string]',
+            },
+        ]
+        valid_versions = set(
+            self.linter._all_options['valid_odoo_versions'].config
+            .valid_odoo_versions)
+
+        def check_is_applicable(check):
+            return (check['attr'] in self.config.deprecated_tree_attributes and
+                    bool(valid_versions - check['skip_versions']))
+
+        applicable_checks = filter(check_is_applicable, checks)
+
+        self.msg_args = []
+        for xml_file in self.filter_files_ext('xml', relpath=True):
+            for record in self.get_xml_records(
+                    os.path.join(self.module_path, xml_file),
+                    model='ir.ui.view'):
+
+                for check in applicable_checks:
+                    if record.xpath(check['xpath']):
+                        self.msg_args.append((
+                            '%s:%d' % (xml_file, record.sourceline),
+                            check['attr']))
         if self.msg_args:
             return False
         return True

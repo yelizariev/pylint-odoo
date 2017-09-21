@@ -35,7 +35,7 @@ EXPECTED_ERRORS = {
     'manifest-deprecated-key': 1,
     'manifest-required-author': 1,
     'manifest-required-key': 1,
-    'manifest-version-format': 2,
+    'manifest-version-format': 3,
     'method-compute': 1,
     'method-inverse': 1,
     'method-required-super': 8,
@@ -61,6 +61,10 @@ EXPECTED_ERRORS = {
     'except-pass': 3,
     'attribute-string-redundant': 33,
     'renamed-field-parameter': 2,
+    'deprecated-data-xml-node': 5,
+    'xml-deprecated-tree-attribute': 3,
+    'resource-not-exist': 3,
+    'website-manifest-key-not-valid-uri': 1
 }
 
 
