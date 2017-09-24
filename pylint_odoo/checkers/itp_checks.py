@@ -41,7 +41,7 @@ ITP_ODOO_MSGS = {
         settings.DESC_DFLT
     ),
 }
-TEMPLATE_RE = '(?<!\$){[_ a-zA-Z0-9]*}'
+TEMPLATE_RE = '(?<!\$){[_ a-zA-Z0-9,./\'"]*}'
 TEMPLATE_FILES = ('README.rst', 'doc/index.rst', 'doc/changelog.rst')
 
 
