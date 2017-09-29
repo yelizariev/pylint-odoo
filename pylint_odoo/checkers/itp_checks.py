@@ -40,6 +40,11 @@ ITP_ODOO_MSGS = {
         'xml-id-duplicated',
         settings.DESC_DFLT
     ),
+    'W%d93' % settings.BASE_OMODULE_ID: (
+        'JS files are not covered (phantom_js is not used). Please add js tests: http://odoo-development.yelizariev.dev.it-projects.info/dev/tests/js.html',
+        'js-empty-coverage',
+        settings.DESC_DFLT
+    ),
 }
 TEMPLATE_RE = '(?<!\$){[_ a-zA-Z0-9,./\'"]*}'
 TEMPLATE_FILES = ('README.rst', 'doc/index.rst', 'doc/changelog.rst')
@@ -136,3 +141,29 @@ class ITPModuleChecker(misc.WrapperModuleChecker):
         if self.msg_args:
             return False
         return True
+
+    @utils.check_messages('js-empty-coverage')
+    def _check_js_empty_coverage(self):
+        js_files =  [
+            fname for fname in self.filter_files_ext('js')
+            if not fname.startswith('static/lib')
+        ]
+        if not js_files:
+            return True
+
+
+        xml_ids = []
+        for pyfile in self.filter_files_ext('py'):
+            if not pyfile.startswith('tests/'):
+                continue
+            # TODO parse python code instead of using regexp
+            f = io.open(os.path.join(self.module_path, pyfile))
+            content = f.read()
+            f.close()
+            match = re.findall('self\.phantom_js', content)
+            if len(match):
+                return True
+
+        self.msg_args = []
+        return False
+
