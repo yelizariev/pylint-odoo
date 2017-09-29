@@ -164,6 +164,5 @@ class ITPModuleChecker(misc.WrapperModuleChecker):
             if len(match):
                 return True
 
-        self.msg_args = []
         return False
 
