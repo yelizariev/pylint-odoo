@@ -41,7 +41,7 @@ ITP_ODOO_MSGS = {
         settings.DESC_DFLT
     ),
     'W%d93' % settings.BASE_OMODULE_ID: (
-        'JS files are not covered (phantom_js is not used). Please add js tests: http://odoo-development.yelizariev.dev.it-projects.info/dev/tests/js.html',
+        'JS files are not covered (phantom_js is not used). Please add js tests: https://odoo-development.readthedocs.io/en/latest/dev/tests/js.html',
         'js-empty-coverage',
         settings.DESC_DFLT
     ),
