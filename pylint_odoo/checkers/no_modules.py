@@ -53,7 +53,6 @@ for more info visit pylint doc
 import ast
 import os
 import re
-import types
 
 import astroid
 import rfc3986
@@ -232,7 +231,7 @@ DFTL_METHOD_REQUIRED_SUPER = [
     'setUp', 'setUpClass', 'tearDown', 'default_get',
 ]
 DFTL_VALID_ODOO_VERSIONS = [
-    '4.2', '5.0', '6.0', '6.1', '7.0', '8.0', '9.0', '10.0'
+    '4.2', '5.0', '6.0', '6.1', '7.0', '8.0', '9.0', '10.0', '11.0',
 ]
 DFTL_MANIFEST_VERSION_FORMAT = r"({valid_odoo_versions})\.\d+\.\d+\.\d+$"
 DFTL_CURSOR_EXPR = [
@@ -498,7 +497,7 @@ class NoModuleChecker(BaseChecker):
 
         # Check author is a string
         author = manifest_dict.get('author', '')
-        if not isinstance(author, types.StringTypes):
+        if not isinstance(author, string_types):
             self.add_message('manifest-author-string', node=node)
         else:
             # Check author required
