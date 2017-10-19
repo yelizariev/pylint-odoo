@@ -8,6 +8,13 @@ from pylint.checkers import BaseChecker, utils
 from pylint.interfaces import IAstroidChecker
 from .. import misc, settings
 
+def _is_string_instance(obj):
+	try:
+		return isinstance(obj, basestring)
+	except NameError:
+		return isinstance(obj, str)
+
+
 ITP_ODOO_MSGS = {
     # C->convention R->refactor W->warning E->error F->fatal
     'E%d99' % settings.BASE_OMODULE_ID: (
@@ -69,7 +76,7 @@ class ITPModuleChecker(misc.WrapperModuleChecker):
 
         # Check all template fields filled
         for k, v in manifest_dict.items():
-            if isinstance(v, types.StringTypes):
+            if _is_string_instance(v):
                 match = re.match(TEMPLATE_RE, v)
                 if match:
                     self.add_message('manifest-template-field', node=node, args=v)
