@@ -136,12 +136,22 @@ ODOO_MSGS = {
         'xml-deprecated-tree-attribute',
         settings.DESC_DFLT
     ),
+    'W%d43' % settings.BASE_OMODULE_ID: (
+        '%s Deprecated QWeb directive "%s". Use "t-options" instead',
+        'xml-deprecated-qweb-directive',
+        settings.DESC_DFLT
+    ),
     'W%d39' % settings.BASE_OMODULE_ID: (
         '%s Use <odoo> instead of <odoo><data> or use <odoo noupdate="1">'
         'instead of <odoo><data noupdate="1">',
         'deprecated-data-xml-node',
         settings.DESC_DFLT
-    )
+    ),
+    'W%d44' % settings.BASE_OMODULE_ID: (
+        '%s The resource in in src/href contains a not valid chararter',
+        'character-not-valid-in-resource-link',
+        settings.DESC_DFLT
+    ),
 }
 
 
@@ -532,6 +542,25 @@ class ModuleChecker(misc.WrapperModuleChecker):
             return False
         return True
 
+    def _check_character_not_valid_in_resource_link(self):
+        """The resource in in src/href contains a not valid chararter"""
+        self.msg_args = []
+        for xml_file in self.filter_files_ext('xml'):
+            doc = self.parse_xml(os.path.join(self.module_path, xml_file))
+            for name, attr in (('link', 'href'), ('script', 'src')):
+                nodes = (doc.xpath('.//%s[@%s]' % (name, attr))
+                         if not isinstance(doc, string_types) else [])
+                for node in nodes:
+                    resource = node.get(attr, '')
+                    ext = os.path.splitext(os.path.basename(resource))[1]
+                    if (resource.startswith('/') and not
+                            re.search('^[.][a-zA-Z]+$', ext)):
+                        self.msg_args.append(("%s:%s" % (xml_file,
+                                                         node.sourceline)))
+        if self.msg_args:
+            return False
+        return True
+
     def _get_duplicate_xml_fields(self, fields):
         """Get duplicated xml fields based on attribute name
         :param fields list: List of lxml.etree.Element "<field"
@@ -877,3 +906,37 @@ class ModuleChecker(misc.WrapperModuleChecker):
         if self.msg_args:
             return False
         return True
+
+    def _check_xml_deprecated_qweb_directive(self):
+        """Check for use of deprecated QWeb directives t-*-options.
+        :return: False if deprecated directives are found, in which case
+                 self.msg_args will contain the error messages.
+        """
+        valid_versions = set(self.linter._all_options[
+            'valid_odoo_versions'].config.valid_odoo_versions)
+        if not valid_versions & {'10.0', '11.0'}:
+            return True
+
+        deprecated_directives = {
+            't-esc-options',
+            't-field-options',
+            't-raw-options',
+        }
+        directive_attrs = '|'.join('@%s' % d for d in deprecated_directives)
+        xpath = '|'.join(
+            '/%s//template//*[%s]' % (tag, directive_attrs)
+            for tag in ('odoo', 'openerp')
+        )
+
+        self.msg_args = []
+        for xml_file in self.filter_files_ext('xml', relpath=False):
+            doc = self.parse_xml(xml_file)
+            if isinstance(doc, string_types):
+                continue
+            for node in doc.xpath(xpath):
+                # Find which directive was used exactly.
+                directive = next(
+                    iter(set(node.attrib) & deprecated_directives))
+                self.msg_args.append((
+                    '%s:%d' % (xml_file, node.sourceline), directive))
+        return not bool(self.msg_args)
