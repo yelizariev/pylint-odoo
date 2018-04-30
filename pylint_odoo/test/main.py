@@ -25,12 +25,12 @@ EXPECTED_ERRORS = {
     'dangerous-view-replace-wo-priority': 5,
     'deprecated-openerp-xml-node': 5,
     'duplicate-id-csv': 2,
-    'duplicate-xml-fields': 8,
+    'duplicate-xml-fields': 9,
     'duplicate-xml-record-id': 2,
     'file-not-used': 6,
     'incoherent-interpreter-exec-perm': 3,
     'invalid-commit': 4,
-    'javascript-lint': 8,
+    'javascript-lint': 13,
     'license-allowed': 1,
     'manifest-author-string': 1,
     'manifest-deprecated-key': 1,
@@ -41,12 +41,13 @@ EXPECTED_ERRORS = {
     'method-inverse': 1,
     'method-required-super': 8,
     'method-search': 1,
-    'missing-import-error': 3,
+    'missing-import-error': 4,
     'missing-manifest-dependency': 2,
     'missing-newline-extrafiles': 4,
     'missing-readme': 1,
     'missing-return': 1,
     'no-utf8-coding-comment': 3,
+    'unnecessary-utf8-coding-comment': 19,
     'odoo-addons-relative-import': 4,
     'old-api7-method-defined': 2,
     'openerp-exception-warning': 3,
@@ -54,7 +55,7 @@ EXPECTED_ERRORS = {
     'rst-syntax-error': 2,
     'sql-injection': 15,
     'translation-field': 2,
-    'translation-required': 4,
+    'translation-required': 14,
     'use-vim-comment': 1,
     'wrong-tabs-instead-of-spaces': 2,
     'eval-referenced': 5,
@@ -239,6 +240,18 @@ class MainTest(unittest.TestCase):
         real_errors = pylint_res.linter.stats['by_msg']
         self.assertListEqual(list(real_errors.items()),
                              list([('xml-attribute-translatable', 1)]))
+
+    def test_100_read_version_from_manifest(self):
+        """Test the functionality to get the version from the file manifest
+        to avoid the parameter --valid_odoo_versions"""
+        modules = [mod for mod in self.paths_modules if
+                   'eleven_module' in mod or 'twelve_module' in mod]
+        extra_params = ['--disable=all', '--enable=no-utf8-coding-comment,'
+                        'unnecessary-utf8-coding-comment']
+        pylint_res = self.run_pylint(modules, extra_params)
+        real_errors = pylint_res.linter.stats['by_msg']
+        self.assertListEqual(list(real_errors.items()),
+                             list([('unnecessary-utf8-coding-comment', 2)]))
 
 
 if __name__ == '__main__':
