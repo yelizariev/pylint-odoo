@@ -245,10 +245,6 @@ class ModuleChecker(misc.WrapperModuleChecker):
 
     class_inherit_names = []
 
-    @utils.check_messages(*(ODOO_MSGS.keys()))
-    def visit_module(self, node):
-        self.wrapper_visit_module(node)
-
     @utils.check_messages('consider-merging-classes-inherited')
     def visit_assign(self, node):
         if not self.odoo_node:
@@ -371,6 +367,8 @@ class ModuleChecker(misc.WrapperModuleChecker):
 
         ext_deps = self.manifest_dict.get('external_dependencies') or {}
         py_ext_deps = ext_deps.get('python') or []
+        if isinstance(node, astroid.ImportFrom) and (node.level or 0) >= 1:
+            return
         if module_name not in py_ext_deps and \
                 module_name.split('.')[0] not in py_ext_deps:
             self.add_message('missing-manifest-dependency', node=node,
@@ -574,11 +572,12 @@ class ModuleChecker(misc.WrapperModuleChecker):
             if not field_xml:
                 continue
             all_fields.setdefault(
-                (field_xml, field.getparent()), []).append(field)
+                (field_xml, field.attrib.get('context'),
+                 field.attrib.get('filter_domain'),
+                 field.getparent()), []).append(field)
         # Remove all keys which not duplicated by excluding them from the
-        # returning dict
-        return dict(((field_xml_name, parent_node), nodes) for
-                    (field_xml_name, parent_node), nodes in
+        return dict(((name, context, filter_domain, parent_node), nodes) for
+                    (name, context, filter_domain, parent_node), nodes in
                     all_fields.items() if len(nodes) >= 2)
 
     def _check_duplicate_xml_fields(self):
@@ -856,7 +855,7 @@ class ModuleChecker(misc.WrapperModuleChecker):
         for xml_file in self.filter_files_ext('xml', relpath=True):
             for record in self.get_xml_records(
                     os.path.join(self.module_path, xml_file), None,
-                    '//attribute[not(@translation)]'):
+                    '//attribute[not(@name="string") and not(@translation)]'):
                 self.msg_args.append(
                     ("%s:%d" % (xml_file, record.sourceline), 'xml_id'))
         if self.msg_args:
