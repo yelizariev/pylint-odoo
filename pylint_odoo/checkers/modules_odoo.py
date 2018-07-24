@@ -167,6 +167,8 @@ DFLT_EXTFILES_TO_LINT = DFLT_EXTFILES_CONVERT + [
 DFLT_IMPORT_NAME_WHITELIST = [
     # self-odoo
     'odoo', 'openerp',
+    # packages for unit tests only
+    'requests_mock',
     # Known external packages of odoo
     'PIL', 'anybox.testing.openerp', 'argparse', 'babel',
     'dateutil', 'decorator', 'docutils', 'faces', 'feedparser',
