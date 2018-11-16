@@ -167,9 +167,10 @@ class ITPModuleChecker(misc.WrapperModuleChecker):
             f = io.open(os.path.join(self.module_path, pyfile))
             content = f.read()
             f.close()
-            match = re.findall('self\.phantom_js', content)
-            if len(match):
-                return True
+            for rexp in ['self\.phantom_js', 'self\.browser_js', 'self\.url_open']: 
+                match = re.findall(rexp, content)
+                if len(match):
+                    return True
 
         return False
 
