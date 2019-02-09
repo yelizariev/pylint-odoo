@@ -115,7 +115,8 @@ ODOO_MSGS = {
     ),
     'W%d36' % settings.BASE_OMODULE_ID: (
         'Missing external dependency "%s" from manifest. More info: '
-        'https://github.com/OCA/maintainer-tools/blob/master/CONTRIBUTING.md'
+        'https://github.com/OCA/odoo-community.org/blob/master/website/'
+        'Contribution/CONTRIBUTING.rst'
         '#external-dependencies',
         'missing-manifest-dependency',
         settings.DESC_DFLT
@@ -245,6 +246,12 @@ class ModuleChecker(misc.WrapperModuleChecker):
         }),
     )
 
+    odoo_check_versions = {
+        'missing-import-error': {
+            'max_odoo_version': '11.0',
+        },
+    }
+
     class_inherit_names = []
 
     @utils.check_messages('consider-merging-classes-inherited')
@@ -359,13 +366,14 @@ class ModuleChecker(misc.WrapperModuleChecker):
             return
         relpath = os.path.relpath(
             node.parent.file, os.path.dirname(self.manifest_file))
-        if os.path.dirname(relpath) != 'tests':
-            # missing-import-error rule doesn't apply to the test files
+        if os.path.dirname(relpath) == 'tests':
+            # import errors rules don't apply to the test files
             # since these files are loaded only when running tests
             # and in such a case your
             # module and their external dependencies are installed.
-            self.add_message('missing-import-error', node=node,
-                             args=(module_name,))
+            return
+        self.add_message('missing-import-error', node=node,
+                         args=(module_name,))
 
         ext_deps = self.manifest_dict.get('external_dependencies') or {}
         py_ext_deps = ext_deps.get('python') or []
@@ -832,19 +840,17 @@ class ModuleChecker(misc.WrapperModuleChecker):
 
     def _check_file_not_used(self):
         """Check if a file is not used from manifest"""
-        self.msg_args = []
         module_files = set(self._get_module_files())
         referenced_files = set(self._get_manifest_referenced_files()).union(
             set(self._get_xml_referenced_files())
         )
-        for no_referenced_file in (module_files - referenced_files):
-            if (not no_referenced_file.startswith('static/') and
-                not (no_referenced_file.startswith('test/') or
-                     no_referenced_file.startswith('tests/'))):
-                self.msg_args.append((no_referenced_file,))
-        if self.msg_args:
-            return False
-        return True
+        excluded_dirs = ['static', 'test', 'tests', 'migrations']
+        no_referenced_files = [
+            f for f in (module_files - referenced_files)
+            if f.split(os.path.sep)[0] not in excluded_dirs
+        ]
+        self.msg_args = no_referenced_files
+        return not no_referenced_files
 
     def _check_xml_attribute_translatable(self):
         """The xml attribute is missing the translation="off" tag
