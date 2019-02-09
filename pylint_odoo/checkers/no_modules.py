@@ -117,7 +117,8 @@ ODOO_MSGS = {
     ),
     'E%d02' % settings.BASE_NOMODULE_ID: (
         'Use of cr.commit() directly - More info '
-        'https://github.com/OCA/maintainer-tools/blob/master/CONTRIBUTING.md'
+        'https://github.com/OCA/odoo-community.org/blob/master/website/'
+        'Contribution/CONTRIBUTING.rst'
         '#never-commit-the-transaction',
         'invalid-commit',
         settings.DESC_DFLT
@@ -125,13 +126,14 @@ ODOO_MSGS = {
     'E%d03' % settings.BASE_NOMODULE_ID: (
         'SQL injection risk. '
         'Use parameters if you can. - More info '
-        'https://github.com/OCA/maintainer-tools/blob/master/CONTRIBUTING.md'
+        'https://github.com/OCA/odoo-community.org/blob/master/website/'
+        'Contribution/CONTRIBUTING.rst'
         '#no-sql-injection',
         'sql-injection',
         settings.DESC_DFLT
     ),
     'C%d01' % settings.BASE_NOMODULE_ID: (
-        'Missing author required "%s" in manifest file',
+        'One of the following authors must be present in manifest: %s',
         'manifest-required-author',
         settings.DESC_DFLT
     ),
@@ -183,6 +185,11 @@ ODOO_MSGS = {
         'method-inverse',
         settings.DESC_DFLT
     ),
+    'C%d11' % settings.BASE_NOMODULE_ID: (
+        'Manifest key development_status "%s" not allowed',
+        'development-status-allowed',
+        settings.DESC_DFLT
+    ),
     'R%d10' % settings.BASE_NOMODULE_ID: (
         'Method defined with old api version 7',
         'old-api7-method-defined',
@@ -222,13 +229,16 @@ ODOO_MSGS = {
 }
 
 DFTL_MANIFEST_REQUIRED_KEYS = ['license']
-DFTL_MANIFEST_REQUIRED_AUTHOR = 'Odoo Community Association (OCA)'
+DFTL_MANIFEST_REQUIRED_AUTHORS = ['Odoo Community Association (OCA)']
 DFTL_MANIFEST_DEPRECATED_KEYS = ['description']
 DFTL_LICENSE_ALLOWED = [
     'AGPL-3', 'GPL-2', 'GPL-2 or any later version',
     'GPL-3', 'GPL-3 or any later version', 'LGPL-3',
     'Other OSI approved licence', 'Other proprietary',
     'OEEL-1',
+]
+DFTL_DEVELOPMENT_STATUS_ALLOWED = [
+    'Alpha', 'Beta', 'Production/Stable', 'Mature',
 ]
 DFTL_ATTRIBUTE_DEPRECATED = [
     '_columns', '_defaults', 'length',
@@ -271,11 +281,19 @@ class NoModuleChecker(misc.PylintOdooChecker):
     name = settings.CFG_SECTION
     msgs = ODOO_MSGS
     options = (
+        ('manifest_required_authors', {
+            'type': 'csv',
+            'metavar': '<comma separated values>',
+            'default': DFTL_MANIFEST_REQUIRED_AUTHORS,
+            'help': 'Author names, at least one is required in manifest file.'
+        }),
         ('manifest_required_author', {
             'type': 'string',
             'metavar': '<string>',
-            'default': DFTL_MANIFEST_REQUIRED_AUTHOR,
-            'help': 'Name of author required in manifest file.'
+            'default': '',
+            'help': ('Name of author required in manifest file. '
+                     'This parameter is deprecated use '
+                     '"manifest_required_authors" instead.')
         }),
         ('manifest_required_keys', {
             'type': 'csv',
@@ -296,6 +314,13 @@ class NoModuleChecker(misc.PylintOdooChecker):
             'metavar': '<comma separated values>',
             'default': DFTL_LICENSE_ALLOWED,
             'help': 'List of license allowed in manifest file, ' +
+                    'separated by a comma.'
+        }),
+        ('development_status_allowed', {
+            'type': 'csv',
+            'metavar': '<comma separated values>',
+            'default': DFTL_DEVELOPMENT_STATUS_ALLOWED,
+            'help': 'List of development status allowed in manifest file, ' +
                     'separated by a comma.'
         }),
         ('attribute_deprecated', {
@@ -563,7 +588,7 @@ class NoModuleChecker(misc.PylintOdooChecker):
         'license-allowed', 'manifest-author-string', 'manifest-deprecated-key',
         'manifest-required-author', 'manifest-required-key',
         'manifest-version-format', 'resource-not-exist',
-        'website-manifest-key-not-valid-uri')
+        'website-manifest-key-not-valid-uri', 'development-status-allowed')
     def visit_dict(self, node):
         if not os.path.basename(self.linter.current_file) in \
                 settings.MANIFEST_FILES \
@@ -577,11 +602,21 @@ class NoModuleChecker(misc.PylintOdooChecker):
             self.add_message('manifest-author-string', node=node)
         else:
             # Check author required
-            authors = map(lambda author: author.strip(), author.split(','))
-            required_author = self.config.manifest_required_author
-            if required_author not in authors:
+            authors = set([auth.strip() for auth in author.split(',')])
+
+            if self.config.manifest_required_author:
+                # Support compatibility for deprecated attribute
+                required_authors = set((self.config.manifest_required_author,))
+            else:
+                required_authors = set(self.config.manifest_required_authors)
+            if not (authors & required_authors):
+                # None of the required authors is present in the manifest
+                # Authors will be printed as 'author1', 'author2', ...
+                authors_str = ", ".join([
+                    "'%s'" % auth for auth in required_authors
+                ])
                 self.add_message('manifest-required-author', node=node,
-                                 args=(required_author,))
+                                 args=(authors_str,))
 
         # Check keys required
         required_keys = self.config.manifest_required_keys
@@ -629,6 +664,13 @@ class NoModuleChecker(misc.PylintOdooChecker):
                  uri.scheme not in {"http", "https"})):
             self.add_message('website-manifest-key-not-valid-uri',
                              node=node, args=(website))
+
+        # Check valid development_status values
+        dev_status = manifest_dict.get('development_status')
+        if (dev_status and
+                dev_status not in self.config.development_status_allowed):
+            self.add_message('development-status-allowed',
+                             node=node, args=(dev_status,))
 
     @utils.check_messages('api-one-multi-together',
                           'copy-wo-api-one', 'api-one-deprecated',
