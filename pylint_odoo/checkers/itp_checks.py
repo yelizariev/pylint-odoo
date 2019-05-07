@@ -52,6 +52,11 @@ ITP_ODOO_MSGS = {
         'js-empty-coverage',
         settings.DESC_DFLT
     ),
+    'E%d92' % settings.BASE_OMODULE_ID: (
+        'File: static/description/index.html is absent in module. Contact Technical Writers for assistance',
+        'absent-index-html',
+        settings.DESC_DFLT
+    ),
 }
 TEMPLATE_RE = '(?<!\$){[_ a-zA-Z0-9,./\'"]*}'
 TEMPLATE_FILES = ('README.rst', 'doc/index.rst', 'doc/changelog.rst')
@@ -103,6 +108,10 @@ class ITPModuleChecker(misc.WrapperModuleChecker):
     @utils.check_messages('absent-doc')
     def _check_absent_doc(self):
         return os.path.isfile(os.path.join(self.module_path, 'doc/index.rst'))
+
+    @utils.check_messages('absent-index-html')
+    def _check_absent_index_html(self):
+        return os.path.isfile(os.path.join(self.module_path, 'static/description/index.html'))
 
     @utils.check_messages('absent-changelog')
     def _check_absent_changelog(self):
