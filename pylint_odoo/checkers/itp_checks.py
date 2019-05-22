@@ -57,6 +57,11 @@ ITP_ODOO_MSGS = {
         'absent-index-html',
         settings.DESC_DFLT
     ),
+    'E%d91' % settings.BASE_OMODULE_ID: (
+        'Module\'s image is absent or it\'s not in images/ folder. Check attribute "images" in module\'s __manifest__.py',
+        'manifest-image',
+        settings.DESC_DFLT
+    ),
 }
 TEMPLATE_RE = '(?<!\$){[_ a-zA-Z0-9,./\'"]*}'
 TEMPLATE_FILES = ('README.rst', 'doc/index.rst', 'doc/changelog.rst')
@@ -112,6 +117,20 @@ class ITPModuleChecker(misc.WrapperModuleChecker):
     @utils.check_messages('absent-index-html')
     def _check_absent_index_html(self):
         return os.path.isfile(os.path.join(self.module_path, 'static/description/index.html'))
+
+    @utils.check_messages('manifest-image')
+    def _check_manifest_image(self):
+        manifest_dict = self.manifest_dict
+        if "images" in manifest_dict.keys():
+            images = manifest_dict.get('images', [])
+            if images != []:
+                for image in images:
+                    if image.startswith("images/"):
+                        return os.path.isfile(os.path.join(self.module_path, image))
+                    else:
+                        return False
+            else:
+                return False
 
     @utils.check_messages('absent-changelog')
     def _check_absent_changelog(self):
