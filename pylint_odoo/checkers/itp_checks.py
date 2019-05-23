@@ -142,10 +142,11 @@ class ITPModuleChecker(misc.WrapperModuleChecker):
         manifest_dict = self.manifest_dict
         if "version" in manifest_dict.keys():
             version = manifest_dict.get('version', '')
+            installable = manifest_dict.get('installable', True)
             if version != '':
                 valid_odoo_versions = self.linter._all_options[
                     'valid_odoo_versions'].config.valid_odoo_versions
-                if '.'.join(version.split('.')[:2]) != valid_odoo_versions[0].encode('ascii','ignore'):
+                if '.'.join(version.split('.')[:2]) != valid_odoo_versions[0].encode('ascii','ignore') and installable:
                     return False
                 else:
                     return True
