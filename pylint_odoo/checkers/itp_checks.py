@@ -145,7 +145,7 @@ class ITPModuleChecker(misc.WrapperModuleChecker):
             if version != '':
                 valid_odoo_versions = self.linter._all_options[
                     'valid_odoo_versions'].config.valid_odoo_versions
-                if version[:4] != valid_odoo_versions[0].encode('ascii','ignore'):
+                if '.'.join(version.split('.')[:2]) != valid_odoo_versions[0].encode('ascii','ignore'):
                     return False
                 else:
                     return True
