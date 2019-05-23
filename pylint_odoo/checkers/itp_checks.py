@@ -62,6 +62,11 @@ ITP_ODOO_MSGS = {
         'manifest-image',
         settings.DESC_DFLT
     ),
+    'E%d90' % settings.BASE_OMODULE_ID: (
+        'Wrong version value in module\'s __manifest__.py',
+        'manifest-version',
+        settings.DESC_DFLT
+    ),
 }
 TEMPLATE_RE = '(?<!\$){[_ a-zA-Z0-9,./\'"]*}'
 TEMPLATE_FILES = ('README.rst', 'doc/index.rst', 'doc/changelog.rst')
@@ -129,6 +134,21 @@ class ITPModuleChecker(misc.WrapperModuleChecker):
                         return os.path.isfile(os.path.join(self.module_path, image))
                     else:
                         return False
+            else:
+                return False
+
+    @utils.check_messages('manifest-version')
+    def _check_manifest_version(self):
+        manifest_dict = self.manifest_dict
+        if "version" in manifest_dict.keys():
+            version = manifest_dict.get('version', '')
+            if version != '':
+                valid_odoo_versions = self.linter._all_options[
+                    'valid_odoo_versions'].config.valid_odoo_versions
+                if '.'.join(version.split('.')[:2]) != valid_odoo_versions[0].encode('ascii','ignore'):
+                    return False
+                else:
+                    return True
             else:
                 return False
 
