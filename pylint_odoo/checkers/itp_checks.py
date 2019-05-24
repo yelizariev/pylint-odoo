@@ -147,6 +147,8 @@ class ITPModuleChecker(misc.WrapperModuleChecker):
                 valid_odoo_versions = self.linter._all_options[
                     'valid_odoo_versions'].config.valid_odoo_versions
                 if '.'.join(version.split('.')[:2]) != valid_odoo_versions[0].encode('ascii','ignore') and installable:
+                    print(f"manifest's odoo version={'.'.join(version.split('.')[:2])}")
+                    print(f"envirement's odoo VERSION={valid_odoo_versions[0].encode('ascii','ignore')}")
                     return False
                 else:
                     return True
