@@ -144,11 +144,12 @@ class ITPModuleChecker(misc.WrapperModuleChecker):
             version = manifest_dict.get('version', '')
             installable = manifest_dict.get('installable', True)
             if version != '':
-                valid_odoo_versions = self.linter._all_options[
-                    'valid_odoo_versions'].config.valid_odoo_versions
-                if '.'.join(version.split('.')[:2]) != valid_odoo_versions[0].encode('ascii','ignore') and installable:
-                    print(f"manifest's odoo version={'.'.join(version.split('.')[:2])}")
-                    print(f"envirement's odoo VERSION={valid_odoo_versions[0].encode('ascii','ignore')}")
+		manifest_odoo_version = '.'.join(version.split('.')[:2])
+                valid_odoo_version = self.linter._all_options[
+                    'valid_odoo_versions'].config.valid_odoo_versions[0].encode('ascii','ignore')
+                if manifest_odoo_version != valid_odoo_version and installable:
+                    print("Odoo version from ___manifest__.py is %s" % (manifest_odoo_version))
+                    print("Expected odoo version is %s" % (valid_odoo_version))
                     return False
                 else:
                     return True
