@@ -4,6 +4,7 @@ import ast
 import os
 import types
 import astroid
+import sys
 from pylint.checkers import BaseChecker, utils
 from pylint.interfaces import IAstroidChecker
 from .. import misc, settings
