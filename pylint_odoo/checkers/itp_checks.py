@@ -146,23 +146,22 @@ class ITPModuleChecker(misc.WrapperModuleChecker):
     @utils.check_messages('readme-versions')
     def _check_readme_versions(self):
         readme_file = os.path.isfile(os.path.join(self.module_path, 'README.rst'))
+        valid_odoo_version = self.linter._all_options[
+            'valid_odoo_versions'].config.valid_odoo_versions[0]
+        if sys.version_info[0] == 2:
+            valid_odoo_version = valid_odoo_version.encode('utf-8')
         if readme_file:
             for line in self.readme_text:
                 urls = re.findall(
                     'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+', line)
-                if urls != []:
-                    for url in urls:
-                        odoo_version = re.search('/(\d+.\d)/', url)
-                        if odoo_version:
-                            valid_odoo_version = self.linter._all_options[
-                                'valid_odoo_versions'].config.valid_odoo_versions[0]
-                            if sys.version_info[0] == 2:
-                                valid_odoo_version = valid_odoo_version.encode('utf-8')
-                            if valid_odoo_version != odoo_version.group(1):
-                                print ('Odoo version in link %s is not valid' % (url))
-                                return False
-                            else:
-                                return True
+                for url in urls:
+                    odoo_version = re.search('/(\d+.\d)/', url)
+                    if odoo_version:
+                        if valid_odoo_version != odoo_version.group(1):
+                            print ('Odoo version in link %s is not valid' % (url))
+                            return False
+                        else:
+                            return True
         else:
             return False
 
