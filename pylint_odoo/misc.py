@@ -59,7 +59,9 @@ class PylintOdooChecker(BaseChecker):
     odoo_node = None
     odoo_module_name = None
     manifest_file = None
+    readme_file = None
     manifest_dict = None
+    readme_text = None
 
     def formatversion(self, string):
         valid_odoo_versions = self.linter._all_options[
@@ -81,6 +83,14 @@ class PylintOdooChecker(BaseChecker):
                     os.path.dirname(node_file), manifest_basename)
                 if os.path.isfile(manifest_file):
                     return manifest_file
+
+    def get_readme_file(self, node_file):
+        if os.path.basename(node_file) == '__init__.py':
+            for readme in settings.README_FILE:
+                readme_file = os.path.join(
+                    os.path.dirname(node_file), readme)
+                if os.path.isfile(readme_file):
+                    return readme_file
 
     def set_ext_files(self):
         """Create `self.ext_files` dictionary with {extension_file: [files]}
@@ -129,13 +139,17 @@ class PylintOdooChecker(BaseChecker):
         :return: None
         """
         manifest_file = self.get_manifest_file(node.file)
+        readme_file = self.get_readme_file(node.file)
         if manifest_file:
             self.manifest_file = manifest_file
+            self.readme_file = readme_file
             self.odoo_node = node
             self.odoo_module_name = os.path.basename(
                 os.path.dirname(self.odoo_node.file))
             with open(self.manifest_file) as f_manifest:
                 self.manifest_dict = ast.literal_eval(f_manifest.read())
+            with open(self.readme_file) as f_readme:
+                self.readme_text = f_readme.readlines()
         elif self.odoo_node and not os.path.dirname(self.odoo_node.file) in \
                 os.path.dirname(node.file):
             # It's not a sub-module python of a odoo module and
@@ -143,7 +157,9 @@ class PylintOdooChecker(BaseChecker):
             self.odoo_node = None
             self.odoo_module_name = None
             self.manifest_dict = None
+            self.readme_text = None
             self.manifest_file = None
+            self.readme_file = None
         self.is_main_odoo_module = False
         if self.odoo_node and self.odoo_node.file == node.file:
             self.is_main_odoo_module = True

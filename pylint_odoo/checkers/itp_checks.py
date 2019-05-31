@@ -68,6 +68,11 @@ ITP_ODOO_MSGS = {
         'manifest-version',
         settings.DESC_DFLT
     ),
+    'E%d89' % settings.BASE_OMODULE_ID: (
+        'Wrong version in module\'s README.rst',
+        'readme-versions',
+        settings.DESC_DFLT
+    ),
 }
 TEMPLATE_RE = '(?<!\$){[_ a-zA-Z0-9,./\'"]*}'
 TEMPLATE_FILES = ('README.rst', 'doc/index.rst', 'doc/changelog.rst')
@@ -137,6 +142,29 @@ class ITPModuleChecker(misc.WrapperModuleChecker):
                         return False
             else:
                 return False
+
+    @utils.check_messages('readme-versions')
+    def _check_readme_versions(self):
+        readme_file = os.path.isfile(os.path.join(self.module_path, 'README.rst'))
+        if readme_file:
+            for line in self.readme_text:
+                urls = re.findall(
+                    'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+', line)
+                if urls != []:
+                    for url in urls:
+                        odoo_version = re.search('/(\d+.\d)/', url)
+                        if odoo_version:
+                            valid_odoo_version = self.linter._all_options[
+                                'valid_odoo_versions'].config.valid_odoo_versions[0]
+                            if sys.version_info[0] == 2:
+                                valid_odoo_version = valid_odoo_version.encode('utf-8')
+                            if valid_odoo_version != odoo_version.group(1):
+                                print ('Odoo version in link %s is not valid' % (url))
+                                return False
+                            else:
+                                return True
+        else:
+            return False
 
     @utils.check_messages('manifest-version')
     def _check_manifest_version(self):
