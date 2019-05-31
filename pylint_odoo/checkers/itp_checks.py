@@ -150,20 +150,22 @@ class ITPModuleChecker(misc.WrapperModuleChecker):
             'valid_odoo_versions'].config.valid_odoo_versions[0]
         if sys.version_info[0] == 2:
             valid_odoo_version = valid_odoo_version.encode('utf-8')
-        if readme_file:
-            for line in self.readme_text:
-                urls = re.findall(
-                    'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+', line)
-                for url in urls:
-                    odoo_version = re.search('/(\d+.\d)/', url)
-                    if odoo_version:
-                        if valid_odoo_version != odoo_version.group(1):
-                            print ('Odoo version in link %s is not valid' % (url))
-                            return False
-                        else:
-                            return True
-        else:
+        if not readme_file:
             return False
+        for line in self.readme_text:
+            """https://www.tutorialspoint.com/python/python_extract_url_from_text.htm. It look all links"""
+            urls = re.findall(
+                'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+', line)
+            for url in urls:
+                odoo_version = re.search('/(\d+.\d)/', url)
+                if not odoo_version:
+                    continue
+                if valid_odoo_version != odoo_version.group(1):
+                    print ('Odoo version in link %s is not valid' % (url))
+                    return False
+                else:
+                    return True
+
 
     @utils.check_messages('manifest-version')
     def _check_manifest_version(self):
