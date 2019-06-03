@@ -73,6 +73,11 @@ ITP_ODOO_MSGS = {
         'readme-versions',
         settings.DESC_DFLT
     ),
+    'E%d88' % settings.BASE_OMODULE_ID: (
+        'Empty or too long module name. The name must be no more than 25 characters',
+        'manifest-name',
+        settings.DESC_DFLT
+    ),
 }
 TEMPLATE_RE = '(?<!\$){[_ a-zA-Z0-9,./\'"]*}'
 TEMPLATE_FILES = ('README.rst', 'doc/index.rst', 'doc/changelog.rst')
@@ -143,6 +148,16 @@ class ITPModuleChecker(misc.WrapperModuleChecker):
             else:
                 return False
 
+    @utils.check_messages('manifest-name')
+    def _check_manifest_image(self):
+        manifest_dict = self.manifest_dict
+        if "name" in manifest_dict.keys():
+            name = manifest_dict.get('name', "")
+            if 0 < len(name) <= 25:
+                return True
+            else:
+                return False
+
     @utils.check_messages('readme-versions')
     def _check_readme_versions(self):
         readme_file = os.path.isfile(os.path.join(self.module_path, 'README.rst'))
@@ -153,11 +168,17 @@ class ITPModuleChecker(misc.WrapperModuleChecker):
         if not readme_file:
             return False
         for line in self.readme_text:
+            tested_on_odoo_version = re.search('Tested on Odoo (\d+.\d) .*', line)
+            if not tested_on_odoo_version:
+                return False
+            if valid_odoo_version != tested_on_odoo_version.group(1):
+                print('Odoo version is not valid in the following string:\n%s' % (line))
+                return False
             """https://www.tutorialspoint.com/python/python_extract_url_from_text.htm. It look all links"""
             urls = re.findall(
                 'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+', line)
             for url in urls:
-                odoo_version = re.search('/(\d+.\d)/', url)
+                odoo_version = re.search('/(\d+.\d)(/|$)', url)
                 if not odoo_version:
                     continue
                 if valid_odoo_version != odoo_version.group(1):
