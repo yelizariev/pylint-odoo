@@ -166,10 +166,12 @@ class ITPModuleChecker(misc.WrapperModuleChecker):
         if sys.version_info[0] == 2:
             valid_odoo_version = valid_odoo_version.encode('utf-8')
         if not readme_file:
+            print('README.rst is missing')
             return False
         for line in self.readme_text:
-            tested_on_odoo_version = re.search('Tested on Odoo (\d+.\d) .*', line)
+            tested_on_odoo_version = re.search('^Tested on Odoo (\d+\.\d) .*', line)
             if not tested_on_odoo_version:
+                print('Template is not valid in the following string:\n%s\nUse template: "Tested on Odoo {VERSION} {ODOO_COMMIT_SHA_TO_BE_UPDATED}"' % (line))
                 return False
             if valid_odoo_version != tested_on_odoo_version.group(1):
                 print('Odoo version is not valid in the following string:\n%s' % (line))
@@ -178,7 +180,7 @@ class ITPModuleChecker(misc.WrapperModuleChecker):
             urls = re.findall(
                 'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+', line)
             for url in urls:
-                odoo_version = re.search('/(\d+.\d)(/|$)', url)
+                odoo_version = re.search('/(\d+\.\d)(/|$)', url)
                 if not odoo_version:
                     continue
                 if valid_odoo_version != odoo_version.group(1):
