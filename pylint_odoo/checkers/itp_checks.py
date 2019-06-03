@@ -168,14 +168,14 @@ class ITPModuleChecker(misc.WrapperModuleChecker):
         if not readme_file:
             print('README.rst is missing')
             return False
+        last_string_readme = self.readme_text[-1]
+        if not 'Tested on Odoo' in last_string_readme:
+            print('Template is not valid in the following string:\n%s\nUse template: "Tested on Odoo {VERSION} {ODOO_COMMIT_SHA_TO_BE_UPDATED}"' % (last_string_readme))
+            return False
+        tested_on_odoo_version = re.search('^Tested on Odoo (\d+\.\d) .*', last_string_readme)
+        if valid_odoo_version != tested_on_odoo_version.group(1):
+            print('Odoo version is not valid in the following string:\n%s' % (last_string_readme))
         for line in self.readme_text:
-            tested_on_odoo_version = re.search('^Tested on Odoo (\d+\.\d) .*', line)
-            if not tested_on_odoo_version:
-                print('Template is not valid in the following string:\n%s\nUse template: "Tested on Odoo {VERSION} {ODOO_COMMIT_SHA_TO_BE_UPDATED}"' % (line))
-                return False
-            if valid_odoo_version != tested_on_odoo_version.group(1):
-                print('Odoo version is not valid in the following string:\n%s' % (line))
-                return False
             """https://www.tutorialspoint.com/python/python_extract_url_from_text.htm. It look all links"""
             urls = re.findall(
                 'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+', line)
@@ -184,7 +184,7 @@ class ITPModuleChecker(misc.WrapperModuleChecker):
                 if not odoo_version:
                     continue
                 if valid_odoo_version != odoo_version.group(1):
-                    print ('Odoo version in link %s is not valid' % (url))
+                    print('Odoo version in link %s is not valid' % (url))
                     return False
                 else:
                     return True
