@@ -59,7 +59,7 @@ ITP_ODOO_MSGS = {
         settings.DESC_DFLT
     ),
     'E%d91' % settings.BASE_OMODULE_ID: (
-        'Module\'s image is absent or it\'s not in images/ folder. Check attribute "images" in module\'s __manifest__.py',
+        'Module\'s image is absent or it\'s not in images/ folder or image has invalid name. Check attribute "images" in module\'s __manifest__.py',
         'manifest-image',
         settings.DESC_DFLT
     ),
@@ -141,7 +141,8 @@ class ITPModuleChecker(misc.WrapperModuleChecker):
             images = manifest_dict.get('images', [])
             if images != []:
                 for image in images:
-                    if image.startswith("images/"):
+                    if "images/" in image:
+                        print('Path to image from __manifest.py__ is %s' % (image))
                         return os.path.isfile(os.path.join(self.module_path, image))
                     else:
                         print('Attribute "images" must begin with "images/"')
