@@ -144,8 +144,10 @@ class ITPModuleChecker(misc.WrapperModuleChecker):
                     if image.startswith("images/"):
                         return os.path.isfile(os.path.join(self.module_path, image))
                     else:
+                        print('Attribute "images" must begin with "images/"')
                         return False
             else:
+                print('Attribute "images" should not be []')
                 return False
 
     @utils.check_messages('manifest-name')
