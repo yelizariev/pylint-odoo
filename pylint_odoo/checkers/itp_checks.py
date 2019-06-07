@@ -139,23 +139,19 @@ class ITPModuleChecker(misc.WrapperModuleChecker):
         manifest_dict = self.manifest_dict
         if "images" in manifest_dict.keys():
             images = manifest_dict.get('images', [])
-            if images != []:
-                for image in images:
-                    if image.startswith("images/"):
-                        if os.path.isfile(os.path.join(self.module_path, image)):
-                            return True
-                        else:
-                            print('Path to image from __manifest.py__ is %s' % (image))
-                            return False
+            for image in images:
+                if image.startswith("images/"):
+                    if os.path.isfile(os.path.join(self.module_path, image)):
+                        return True
                     else:
-                        print('Attribute "images" must begin with "images/"')
+                        print('Path to image from __manifest.py__ is %s' % (image))
                         return False
-            else:
-                print('Attribute "images" should not be []')
-                return False
+                else:
+                    print('Attribute "images" must begin with "images/"')
+                    return False
 
     @utils.check_messages('manifest-name')
-    def _check_manifest_image(self):
+    def _check_manifest_name(self):
         manifest_dict = self.manifest_dict
         if "name" in manifest_dict.keys():
             name = manifest_dict.get('name', "")
