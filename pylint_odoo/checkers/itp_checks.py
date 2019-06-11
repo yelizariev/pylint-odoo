@@ -194,8 +194,7 @@ class ITPModuleChecker(misc.WrapperModuleChecker):
             if valid_odoo_version != odoo_version.group(1):
                 print('Odoo version in link %s is not valid' % (url))
                 return False
-        else:
-            return True
+        return True
 
 
     @utils.check_messages('manifest-version')
