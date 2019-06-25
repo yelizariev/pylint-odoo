@@ -71,7 +71,7 @@ class PylintOdooChecker(BaseChecker):
         self.config.manifest_version_format_parsed = (
             DFTL_MANIFEST_VERSION_FORMAT.format(
                 valid_odoo_versions=valid_odoo_versions))
-        return re.match(self.config.manifest_version_format_parsed, string)
+        return re.match(self.config.manifest_version_format_parsed, str(string))
 
     def get_manifest_file(self, node_file):
         """Get manifest file path
@@ -142,12 +142,13 @@ class PylintOdooChecker(BaseChecker):
         readme_file = self.get_readme_file(node.file)
         if manifest_file:
             self.manifest_file = manifest_file
-            self.readme_file = readme_file
             self.odoo_node = node
             self.odoo_module_name = os.path.basename(
                 os.path.dirname(self.odoo_node.file))
             with open(self.manifest_file) as f_manifest:
                 self.manifest_dict = ast.literal_eval(f_manifest.read())
+        if readme_file:
+            self.readme_file = readme_file
             with open(self.readme_file) as f_readme:
                 self.readme_text = f_readme.readlines()
         elif self.odoo_node and not os.path.dirname(self.odoo_node.file) in \
