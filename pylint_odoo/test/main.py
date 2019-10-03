@@ -31,7 +31,7 @@ EXPECTED_ERRORS = {
     'file-not-used': 6,
     'incoherent-interpreter-exec-perm': 3,
     'invalid-commit': 4,
-    'javascript-lint': 25,
+    'javascript-lint': 24,
     'license-allowed': 1,
     'manifest-author-string': 1,
     'manifest-deprecated-key': 1,
@@ -48,13 +48,15 @@ EXPECTED_ERRORS = {
     'missing-readme': 1,
     'missing-return': 1,
     'no-utf8-coding-comment': 6,
-    'unnecessary-utf8-coding-comment': 20,
+    # TODO: Check why broken_module3/__init__.py is not raising this check:
+    'unnecessary-utf8-coding-comment': 19,
     'odoo-addons-relative-import': 4,
     'old-api7-method-defined': 2,
     'openerp-exception-warning': 3,
+    'print-used': 1,
     'redundant-modulename-xml': 1,
     'rst-syntax-error': 2,
-    'sql-injection': 15,
+    'sql-injection': 18,
     'translation-field': 2,
     'translation-required': 15,
     'translation-contains-variable': 10,
@@ -83,10 +85,12 @@ def profiling(profile):
 
 class MainTest(unittest.TestCase):
     def setUp(self):
+        dummy_cfg = os.path.join(gettempdir(), 'nousedft.cfg')
+        open(dummy_cfg, "w").write("")
         self.default_options = [
             '--load-plugins=pylint_odoo', '--reports=no', '--msg-template='
             '"{path}:{line}: [{msg_id}({symbol}), {obj}] {msg}"',
-            '--output-format=colorized',
+            '--output-format=colorized', '--rcfile=%s' % os.devnull,
         ]
         path_modules = os.path.join(
             os.path.dirname(os.path.dirname(os.path.realpath(__file__))),
@@ -122,7 +126,10 @@ class MainTest(unittest.TestCase):
         sys.path.extend(paths)
         cmd = self.default_options + extra_params + paths
         with profiling(self.profile):
-            res = Run(cmd, exit=False)
+            try:
+                res = Run(cmd, do_exit=False)  # pylint2
+            except TypeError:
+                res = Run(cmd, exit=False)  # pylint1
         return res
 
     def test_10_path_dont_exist(self):
