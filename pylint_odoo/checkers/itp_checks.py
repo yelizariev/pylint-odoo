@@ -3,11 +3,15 @@ import re
 import ast
 import os
 import types
-import astroid
 import sys
 from pylint.checkers import BaseChecker, utils
 from pylint.interfaces import IAstroidChecker
 from .. import misc, settings
+
+try:
+    from astroid import Discard as Expr
+except ImportError:
+    from astroid import Expr
 
 def _is_string_instance(obj):
 	try:
@@ -96,7 +100,7 @@ class ITPModuleChecker(misc.WrapperModuleChecker):
     @utils.check_messages('manifest-template-field')
     def visit_dict(self, node):
         if not os.path.basename(self.linter.current_file) in settings.MANIFEST_FILES \
-                or not isinstance(node.parent, astroid.Discard):
+                or not isinstance(node.parent, Expr):
             return
         manifest_dict = ast.literal_eval(node.as_string())
 
